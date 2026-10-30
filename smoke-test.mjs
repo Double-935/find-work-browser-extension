@@ -1,0 +1,20 @@
+import fs from 'node:fs';
+import vm from 'node:vm';
+import assert from 'node:assert/strict';
+
+const data={config:{gradYear:'2027',days:'5',keywords:'AI 产品',exclude:'售前',cities:'深圳',companies:'Example | careers.example.com',sources:'Example 职位 | https://careers.example.com/job/12345 | 官方',resume:'真实简历',dailyTime:'09:00',scanTimes:'09:00,15:00,21:00'},jobs:{},scanLog:[]};
+const chrome={storage:{local:{async get(keys){return Object.fromEntries(keys.map(k=>[k,data[k]]));},async set(x){Object.assign(data,x);}}},permissions:{async contains(){return true;}},tabs:{async create(){}},runtime:{getURL(x){return x;},onInstalled:{addListener(){}},onStartup:{addListener(){}},onMessage:{addListener(){}}},alarms:{create(){},onAlarm:{addListener(){}}}};
+const html='<h1>AI 产品实习生</h1><p>深圳，2027届，每周5天</p><h2>岗位职责</h2><p>协助产品经理做用户访谈、需求分析、PRD和跨团队推进产品上线，参与真实 AI 产品需求的整理和测试。跟踪真实用户反馈，分析产品使用问题，与设计研发团队协作完成上线后的迭代优化。</p><h2>任职要求</h2><p>2027届在校生，有 AI 产品项目经验，每周可实习5天，连续至少3个月。</p><button>申请职位</button>';
+const fetch=async url=>({ok:true,text:async()=>String(url).includes('bing.com')?'<rss><channel></channel></rss>':html});
+const ctx=vm.createContext({chrome,fetch,URL,Date,RegExp,String,Number,console,crypto,AbortSignal});
+vm.runInContext(fs.readFileSync(new URL('./background.js',import.meta.url),'utf8'),ctx);
+const role=await vm.runInContext('scan()',ctx);
+assert.equal(role.verified,1);
+assert.equal(role.leads,0);
+const job=Object.values(data.jobs)[0];
+assert.equal(job.status,'新发现');
+assert.ok(job.score.total>0);
+assert.ok(data.scanLog.length===1);
+assert.equal(vm.runInContext("detail('https://careers.example.com/jobs')",ctx),false);
+for(const u of ['https://talent.baidu.com/jobs/detail/INTERN/94ab1ee2-45c7-4522-8292-f971fb496c2b','https://hr.meitu.com/en/jobIntern/c466c0c2-4d0d-47a9-9ab0-52dcc5f6ec31','https://campus.gdalpha.com/campus_apply/alpha/41433/#/job/47567fac-0859-4e58-ba40-00cb2366cc50'])assert.equal(vm.runInContext(`detail(${JSON.stringify(u)})`,ctx),true);
+console.log('smoke-test passed');

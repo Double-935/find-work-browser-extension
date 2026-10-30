@@ -1,0 +1,12 @@
+{
+  "manifest_version": 3,
+  "name": "Find Work — 求职机会助手",
+  "version": "0.1.0",
+  "description": "本地定时发现公开岗位、按规则排序、记录反馈与申请进度。",
+  "permissions": ["storage", "alarms", "tabs"],
+  "host_permissions": ["https://www.bing.com/*"],
+  "optional_host_permissions": ["https://*/*"],
+  "background": { "service_worker": "background.js" },
+  "action": { "default_title": "Find Work", "default_popup": "popup.html" },
+  "options_page": "options.html"
+}
