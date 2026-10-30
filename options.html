@@ -1,1 +1,28 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Find Work 设置</title><link rel="stylesheet" href="style.css"><main><h1>求职助手设置</h1><p>数据只保存在本机浏览器中。新增来源时，浏览器会询问该网站的读取权限。</p><div class="grid"><label>预计毕业年份<input id="gradYear" type="number" min="2020" max="2040" placeholder="2027"></label><label>每周可实习天数<input id="days" type="number" min="1" max="7" placeholder="5"></label></div><label>目标岗位关键词（逗号分隔）<input id="keywords" placeholder="AI 产品,课程研发,教育产品"></label><label>排除关键词（逗号分隔）<input id="exclude" placeholder="售前,教培销售"></label><label>实习优先城市（逗号分隔）<input id="cities" placeholder="深圳"></label><label>目标公司（每行：公司名 | 官方域名，域名可填多个并用英文逗号分隔）<textarea id="companies" rows="7" placeholder="示例公司 | careers.example.com, example.jobs.feishu.cn"></textarea></label><label>公开招聘页／公众号文章（每行：名称 | 完整网址 | 官方或线索）<textarea id="sources" rows="7" placeholder="示例招聘页 | https://careers.example.com/jobs | 官方"></textarea></label><label>简历母板（粘贴文本；只保存在本机）<textarea id="resume" rows="9" placeholder="粘贴事实准确的简历母板"></textarea></label><div class="grid"><label>日报时间（本机时间）<input id="dailyTime" type="time"></label><label>扫描时间（逗号分隔，24小时制）<input id="scanTimes" placeholder="09:00,15:00,21:00"></label></div><button id="save">保存设置并授予来源权限</button><p id="message" role="status"></p><p><a href="report.html">查看日报与进度</a></p></main><script src="options.js"></script></html>
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Find Work 设置</title><link rel="stylesheet" href="style.css">
+<main>
+  <h1>求职助手设置</h1>
+  <p>数据只保存在本机浏览器中。新增来源时，浏览器会询问该网站的读取权限。</p>
+  <div class="grid"><label>预计毕业年份<input id="gradYear" type="number" min="2020" max="2040" placeholder="2027"></label><label>每周可实习天数<input id="days" type="number" min="1" max="7" placeholder="5"></label></div>
+  <label>目标岗位关键词（逗号分隔；用于跨公司搜索）<input id="keywords" placeholder="AI 产品,课程研发,教育产品"></label>
+  <label>排除关键词（逗号分隔）<input id="exclude" placeholder="售前,教培销售"></label>
+  <label>实习优先城市（逗号分隔）<input id="cities" placeholder="深圳"></label>
+  <label>优先关注公司（每行：公司名 | 官方域名；用于额外搜索和排序加权，不限制其他公司出现）<textarea id="companies" rows="7" placeholder="示例公司 | careers.example.com, example.jobs.feishu.cn"></textarea></label>
+  <label>其他已确认的官方招聘域名（每行一个；可来自非优先公司）<textarea id="trustedDomains" rows="4" placeholder="careers.other-example.com"></textarea></label>
+  <label>公开招聘页／公众号文章（每行：名称 | 完整网址 | 官方或线索）<textarea id="sources" rows="7" placeholder="示例招聘页 | https://careers.example.com/jobs | 官方"></textarea></label>
+  <h2>我的排序权重</h2><p class="muted">按自己的求职重点填写六项，合计须为 100。更改后下次扫描会重新计算岗位分数。</p>
+  <div class="grid">
+    <label>方向契合<input id="weightDirection" type="number" min="0" max="100"></label>
+    <label>实习／届别／时间可行性<input id="weightFeasibility" type="number" min="0" max="100"></label>
+    <label>优先公司<input id="weightCompany" type="number" min="0" max="100"></label>
+    <label>AI／教育相关度<input id="weightRelevance" type="number" min="0" max="100"></label>
+    <label>地点<input id="weightLocation" type="number" min="0" max="100"></label>
+    <label>薪酬<input id="weightSalary" type="number" min="0" max="100"></label>
+  </div>
+  <label>简历母板（粘贴文本；只保存在本机）<textarea id="resume" rows="9" placeholder="粘贴事实准确的简历母板"></textarea></label>
+  <div class="grid"><label>日报时间（本机时间）<input id="dailyTime" type="time"></label><label>扫描时间（逗号分隔，24小时制）<input id="scanTimes" placeholder="09:00,15:00,21:00"></label></div>
+  <button id="save">保存设置并授予来源权限</button><p id="message" role="status"></p><p><a href="report.html">查看日报与进度</a></p>
+</main><script src="options.js"></script>
+</html>
