@@ -1,5 +1,5 @@
 const $ = id => document.getElementById(id);
-const defaults = {gradYear:'',days:'',keywords:'',exclude:'',cities:'',companies:'',industries:'',highMatchThreshold:'80',sizePreference:'',stagePreference:'',smallMax:'99',mediumMax:'999',salaryMin:'',salaryMax:'',salaryCurrency:'CNY',salaryPeriod:'month',salaryWorkType:'intern',reportMode:'tab',resume:'',dailyTime:'09:00',scanTimes:'09:00,15:00,21:00'};
+const defaults = {gradYear:'',days:'',keywords:'',exclude:'',cities:'',companies:'',industries:'',highMatchThreshold:'80',sizePreference:'',stagePreference:'',smallMax:'99',mediumMax:'999',salaryMin:'',salaryMax:'',salaryCurrency:'CNY',salaryPeriod:'month',salaryWorkType:'intern',reportMode:'tab',resume:'',dailySchedule:'weekdays-09',dailyDays:'weekdays',dailyTime:'09:00',scanTimes:'09:00,15:00,21:00'};
 const fields = Object.keys(defaults);
 const priorityNames=['地区','薪资','行业','公司平台','个人发展与能力提升','专业对口或岗位契合度','有转正HC','包吃住','有亲朋好友','有喜欢的娱乐措施/可以发展爱好','宠物友好'];
 const priorityTypes={'地区':'location','薪资':'salary','行业':'keyword','公司平台':'company','个人发展与能力提升':'development','专业对口或岗位契合度':'keyword','有转正HC':'conversion','包吃住':'mealsHousing','宠物友好':'petFriendly'};
@@ -8,6 +8,7 @@ function syncConditionalFields(){
   $('smallMaxField').hidden=$('sizePreference').value!=='small';
   $('mediumMaxField').hidden=$('sizePreference').value!=='medium';
   $('salaryDetails').hidden=!$('salaryMin').value.trim()&&!$('salaryMax').value.trim();
+  $('customDailyFields').hidden=$('dailySchedule').value!=='custom';
 }
 function criteriaFor(config){
   if(Array.isArray(config?.criteria))return config.criteria;
@@ -51,16 +52,18 @@ function addCriterion(value={name:'',type:'keyword',terms:'',weight:0}){
 }
 async function load(){
   if(!globalThis.chrome?.storage?.local){for(const k of fields)$(k).value=defaults[k];syncConditionalFields();$('criteria').replaceChildren();for(const item of criteriaFor(null))addCriterion(item);$('clearResumeFile').hidden=true;$('save').disabled=true;$('message').textContent='当前是文件预览；安装为浏览器扩展后才能保存设置。';return;}
-  const {config} = await chrome.storage.local.get('config');for(const k of fields) $(k).value=config?.[k]??defaults[k];syncConditionalFields();$('criteria').replaceChildren();for(const item of criteriaFor(config))addCriterion(item);updateWeightRemaining();try{const saved=await resumeStore.get();savedResumeName=saved?.name||'';$('currentResumeFile').textContent=saved?`已保存：${saved.name}`:'尚未选择文件';$('clearResumeFile').textContent='移除已保存文件';$('clearResumeFile').hidden=!saved;}catch(e){$('currentResumeFile').textContent=`无法读取已保存文件：${e.message}`;$('clearResumeFile').hidden=true;}
+  const {config} = await chrome.storage.local.get('config');for(const k of fields) $(k).value=config?.[k]??defaults[k];if(config&&!config.dailySchedule&&config.dailyTime&&config.dailyTime!=='09:00')$('dailySchedule').value='custom';syncConditionalFields();$('criteria').replaceChildren();for(const item of criteriaFor(config))addCriterion(item);updateWeightRemaining();try{const saved=await resumeStore.get();savedResumeName=saved?.name||'';$('currentResumeFile').textContent=saved?`已保存：${saved.name}`:'尚未选择文件';$('clearResumeFile').textContent='移除已保存文件';$('clearResumeFile').hidden=!saved;}catch(e){$('currentResumeFile').textContent=`无法读取已保存文件：${e.message}`;$('clearResumeFile').hidden=true;}
 }
 $('addCriterion').onclick=()=>addCriterion();
 $('sizePreference').onchange=syncConditionalFields;
 $('salaryMin').oninput=syncConditionalFields;
 $('salaryMax').oninput=syncConditionalFields;
+$('dailySchedule').onchange=syncConditionalFields;
 $('resumeFile').onchange=()=>{const file=$('resumeFile').files[0];if(file){removeResumeFile=false;$('currentResumeFile').textContent=`待保存：${file.name}`;$('clearResumeFile').textContent='取消选择';$('clearResumeFile').hidden=false;}};
 $('clearResumeFile').onclick=()=>{if($('resumeFile').files[0]){$('resumeFile').value='';removeResumeFile=false;$('currentResumeFile').textContent=savedResumeName?`已保存：${savedResumeName}`:'尚未选择文件';$('clearResumeFile').textContent='移除已保存文件';$('clearResumeFile').hidden=!savedResumeName;return;}removeResumeFile=true;$('currentResumeFile').textContent='将在保存设置后移除已保存文件';$('clearResumeFile').hidden=true;};
 $('save').onclick=async()=>{
   const c=Object.fromEntries(fields.map(k=>[k,$(k).value.trim()]));
+  if(c.dailySchedule!=='custom'){c.dailyDays=c.dailySchedule==='daily-09'?'daily':'weekdays';c.dailyTime='09:00';}
   if(c.sizePreference!=='small')c.smallMax=defaults.smallMax;
   if(c.sizePreference!=='medium')c.mediumMax=defaults.mediumMax;
   const times=c.scanTimes.split(',').map(s=>s.trim());
@@ -75,7 +78,7 @@ $('save').onclick=async()=>{
     if(file)await resumeStore.save(file);
     else if(removeResumeFile)await resumeStore.remove();
     const saved=await resumeStore.get();c.resumeFileName=saved?.name||'';c.resumeFileSize=saved?.size||0;
-    await chrome.storage.local.set({config:c});$('smallMax').value=c.smallMax;$('mediumMax').value=c.mediumMax;removeResumeFile=false;$('resumeFile').value='';
+    await chrome.storage.local.set({config:c});$('smallMax').value=c.smallMax;$('mediumMax').value=c.mediumMax;$('dailyDays').value=c.dailyDays;$('dailyTime').value=c.dailyTime;removeResumeFile=false;$('resumeFile').value='';
     savedResumeName=saved?.name||'';$('currentResumeFile').textContent=saved?`已保存：${saved.name}`:'尚未选择文件';$('clearResumeFile').textContent='移除已保存文件';$('clearResumeFile').hidden=!saved;
     $('message').textContent='设置已保存。提供母板的岗位可准备简历提示词；未提供母板时不会生成。';
   }catch(e){$('message').textContent=`文件或设置保存失败：${e.message}`;}

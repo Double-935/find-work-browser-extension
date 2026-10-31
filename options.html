@@ -54,7 +54,8 @@
   </section>
   <section class="settings-section" aria-labelledby="reportHeading">
     <h2 id="reportHeading">四、日报设置</h2>
-    <div class="grid"><label>日报时间（本机时间）<input id="dailyTime" type="time"></label><label>扫描时间（逗号分隔，24小时制）<input id="scanTimes" placeholder="09:00,15:00,21:00"></label></div>
+    <div class="grid"><label>日报时间（本机时间）<select id="dailySchedule"><option value="weekdays-09">仅工作日早九点</option><option value="daily-09">每日早九点</option><option value="custom">自定义</option></select></label><label>扫描时间（逗号分隔，24小时制）<input id="scanTimes" placeholder="09:00,15:00,21:00"></label></div>
+    <div id="customDailyFields" class="grid" hidden><label>发送日期<select id="dailyDays"><option value="weekdays">仅工作日</option><option value="daily">每日</option></select></label><label>发送时间（本机时间）<input id="dailyTime" type="time"></label></div>
     <label>早报呈现<select id="reportMode"><option value="tab">自动打开标签页</option><option value="badge">只在插件图标显示提醒</option></select></label>
   </section>
   <button id="save">保存设置</button><p id="message" role="status"></p><p><a href="report.html">查看日报与进度</a></p>
