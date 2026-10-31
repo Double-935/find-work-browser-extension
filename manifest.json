@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Find Work — 求职机会助手",
-  "version": "0.7.5",
+  "version": "0.7.6",
   "description": "本地定时发现公开岗位、按规则排序、记录反馈与申请进度。",
   "permissions": ["storage", "alarms", "tabs"],
   "host_permissions": ["https://*/*"],

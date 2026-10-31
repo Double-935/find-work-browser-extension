@@ -11,7 +11,7 @@ const allowed=(u,domains)=>domains.some(d=>host(u)===d||host(u).endsWith('.'+d))
 const blocked=u=>/(^|\.)(?:zhipin\.com|bosszhipin\.com|linkedin\.com|linkedin\.cn)$/i.test(host(u));
 const sourceLike=x=>normalized(x.url)&&!blocked(x.url)&&!detail(x.url)&&(/career|recruit|join|campus|intern|job|招聘|职位/i.test(x.url+' '+x.title)||host(x.url)==='mp.weixin.qq.com');
 const detail=u=>/\/(?:job|jobs|position|positions|post|detail|jobIntern|jobSocial)(?:\/(?:intern|campus|social))?\/(?:[a-f0-9-]{12,}|\d{4,})/i.test(u)||/#\/(?:job|position)\/[a-f0-9-]{12,}/i.test(u);
-const dateFrom=s=>{const m=s.match(/(?:截止(?:日期|时间)?|申请截止)[^\d]{0,12}(20\d{2})[年\/.-](\d{1,2})[月\/.-](\d{1,2})/);if(!m)return null;const d=new Date(+m[1],+m[2]-1,+m[3],23,59,59);return Number.isNaN(d.getTime())?null:d.toISOString();};
+const dateFrom=s=>{const m=s.match(/(?:截止(?:日期|时间)?|申请截止)[^\d]{0,12}(20\d{2})[年\/.-](\d{1,2})[月\/.-](\d{1,2})/);if(!m)return null;const y=+m[1],month=+m[2],day=+m[3],d=new Date(y,month-1,day,23,59,59);return d.getFullYear()===y&&d.getMonth()===month-1&&d.getDate()===day?d.toISOString():null;};
 const locationOf=s=>String(s||'').match(/(?:工作地点|工作城市|办公地点|工作地|location)\s*[:：]\s*(北京|上海|深圳|广州|杭州|成都|厦门|武汉|南京|苏州|香港|天津|重庆|西安|长沙|郑州|宁波|东莞|佛山)/i)?.[1]||'';
 const sameRole=(a,b)=>a.title?.trim().toLowerCase()===b.title?.trim().toLowerCase()&&a.company?.trim().toLowerCase()===b.company?.trim().toLowerCase()&&locationOf(a.jd)&&locationOf(a.jd)===locationOf(b.jd);
 const closed=s=>/(?:该?职位|岗位|招聘)(?:已)?(?:关闭|下线|停止招聘|停止投递)|(?:申请|投递)已截止|position (?:is )?(?:closed|expired)/i.test(s);
@@ -19,7 +19,7 @@ const applyOpen=html=>[...String(html||'').matchAll(/<(a|button)\b([^>]*)>([\s\S
 function waitedMoreThanOneWorkday(start,end){let days=0,d=new Date(start);d.setHours(0,0,0,0);for(d.setDate(d.getDate()+1);d<end;d.setDate(d.getDate()+1))if(d.getDay()!==0&&d.getDay()!==6)days++;return days>1;}
 const xmlItems=s=>[...s.matchAll(/<item>([\s\S]*?)<\/item>/gi)].map(m=>({title:clean(m[1].match(/<title>([\s\S]*?)<\/title>/i)?.[1]),url:clean(m[1].match(/<link>([\s\S]*?)<\/link>/i)?.[1])})).filter(x=>normalized(x.url));
 const htmlLinks=(html,base)=>[...html.matchAll(/<a\b([^>]*?)href=["']([^"']+)["']([^>]*)>([\s\S]*?)<\/a>/gi)].map(m=>{try{return {url:new URL(clean(m[2]),base).href,title:clean(m[4])};}catch{return null;}}).filter(Boolean);
-async function getText(url){const r=await fetch(url,{credentials:'omit',redirect:'follow',signal:AbortSignal.timeout(12000)});if(!r.ok)throw Error(`HTTP ${r.status}`);return await r.text();}
+async function getText(url){const r=await fetch(url,{credentials:'omit',redirect:'follow',signal:AbortSignal.timeout(12000)});if(!r.ok)throw Error(`HTTP ${r.status}`);if(r.url&&host(r.url)!==host(url))throw Error('页面跳转到其他域名，需重新确认来源');return await r.text();}
 async function canRead(url){try{return await chrome.permissions.contains({origins:[`https://${host(url)}/*`]});}catch{return false;}}
 function criteriaFor(c){
   if(Array.isArray(c.criteria)&&c.criteria.length)return c.criteria;
@@ -55,13 +55,14 @@ function score(title,body,preferred,c,sourceUrl=''){
     }
     if(rule.type==='company'){
       const sizePref=c.sizePreference,stagePref=c.stagePreference;
-      if(!sizePref&&!stagePref)return {value:null,basis:'未设置规模或阶段偏好'};
+      const preferredDomains=companyRows(c).some(row=>row.domains.length);
+      if(!sizePref&&!stagePref&&!preferredDomains)return {value:null,basis:'未设置规模、阶段偏好或可核验的优先公司域名'};
       const dated=b.match(/(?:截至|于)\s*(20\d{2})\s*年?[^。；]{0,80}?(\d{2,7})\s*(?:名|位|人)?员工/),headcount=dated?Number(dated[2]):null;
       const scale=headcount==null?null:headcount<=Number(c.smallMax||99)?'small':headcount<=Number(c.mediumMax||999)?'medium':'large';
       const stageMatch=b.match(/(?:截至|于)\s*(20\d{2})\s*年?[^。；]{0,80}?(?:公司|企业)[^。；]{0,20}?(成熟期|成长(?:期|阶段)|早期(?:阶段)?)/),stage=stageMatch?stageMatch[2].startsWith('成熟')?'mature':stageMatch[2].startsWith('成长')?'growth':'early':null;
-      if((sizePref&&!scale)||(stagePref&&!stage))return {value:null,basis:'缺少有日期的规模资料或明确的发展阶段资料'};
-      const checks=[];if(sizePref)checks.push(Number(sizePref===scale));if(stagePref)checks.push(Number(stagePref===stage));
-      return {value:checks.reduce((x,y)=>x+y,0)/checks.length,basis:`规模 ${headcount==null?'未公布':`${headcount} 人（${dated[1]} 年）`}；阶段 ${stageMatch?`${stageMatch[2]}（${stageMatch[1]} 年）`:'未明确'}；来源 ${sourceUrl||'职位页'}`};
+      const checks=[];if(preferredDomains)checks.push(Number(preferred));if(sizePref&&scale)checks.push(Number(sizePref===scale));if(stagePref&&stage)checks.push(Number(stagePref===stage));
+      if(!checks.length)return {value:null,basis:'缺少可核验的优先公司域名、规模或阶段资料'};
+      return {value:checks.reduce((x,y)=>x+y,0)/checks.length,basis:`优先公司 ${preferredDomains?(preferred?'官方域名匹配':'官方域名未匹配'):'未提供域名'}；规模 ${headcount==null?'信息不足':`${headcount} 人（${dated[1]} 年）`}；阶段 ${stageMatch?`${stageMatch[2]}（${stageMatch[1]} 年）`:'信息不足'}；来源 ${sourceUrl||'职位页'}`};
     }
     if(rule.type==='location'){
       const cities=words(c.cities).map(x=>x.toLowerCase());if(!cities.length)return {value:null,basis:'未填写优先城市'};
@@ -121,10 +122,10 @@ async function scan({daily=false}={}){
   const data=await chrome.storage.local.get(['config','jobs','scanLog','sourceIndex','approvedUrls','dailyIssue']);const c=data.config;if(!c)throw Error('请先在设置中填写毕业年份和岗位关键词。');
   const found=await collect(c,data.approvedUrls||[]);const {discoveredSources,errors}=found,jobs=data.jobs||{},approved=new Set(data.approvedUrls||[]);let newVerified=0,newLeads=0;const now=new Date();
   const candidates=new Map(found.candidates.map(item=>[normalized(item.url),item]));
-  for(const j of Object.values(jobs))if(j.url&&j.source!=='本人自选'&&(j.verified||j.status==='待复核'||approved.has(j.url))&&!candidates.has(normalized(j.url)))candidates.set(normalized(j.url),{url:j.url,title:j.title,company:j.company,source:j.source,official:j.official||approved.has(j.url)});
+  for(const j of Object.values(jobs))if(j.url&&j.source!=='本人自选'&&(j.verified||j.status==='待复核'||j.status==='失效'||approved.has(j.url))&&!candidates.has(normalized(j.url)))candidates.set(normalized(j.url),{url:j.url,title:j.title,company:j.company,source:j.source,official:j.official||approved.has(j.url)});
   for(const item of candidates.values()){
     const url=normalized(item.url),prior=jobs[url];if(!url)continue;
-    if(prior?.source==='本人自选'||prior?.status&&['不适配','已放弃','已投递','面试中','无回复','不通过','Offer','失效'].includes(prior.status))continue;
+    if(prior?.source==='本人自选'||prior?.status&&['不适配','已放弃','已投递','面试中','无回复','不通过','Offer'].includes(prior.status))continue;
     let html='',body='',reason='';
     if(!item.official&&!prior?.official&&!approved.has(url))reason='来源尚未确认为官方';
     else if(!detail(url))reason='尚未找到具体职位链接';
@@ -142,8 +143,8 @@ async function scan({daily=false}={}){
     const deadline=body?dateFrom(body):prior?.deadline||null;if(!reason&&deadline&&new Date(deadline)<now)reason='申请截止日已过';
     const preferred=companyRows(c).find(x=>allowed(url,x.domains)),verified=!reason,company=preferred?.name||item.company||host(url);
     const unavailable=reason==='岗位已关闭或停止投递'||reason==='申请截止日已过';
-    const status=unavailable?'失效':verified?(prior?.status==='待复核'?prior.previousStatus||'新发现':prior?.status==='待用户确认'?'新发现':prior?.status||'新发现'):(prior?.verified||prior?.status==='待复核'?'待复核':prior?.status||'待用户确认');
-    const entry={...prior,id:prior?.id||crypto.randomUUID(),url,title,company,source:item.source,official:item.official||prior?.official||approved.has(url),isDetail:detail(url),verified,reason,status,previousStatus:status==='待复核'?prior?.previousStatus||prior?.status:null,firstSeen:prior?.firstSeen||now.toISOString(),firstVerifiedAt:verified?(prior?.firstVerifiedAt||now.toISOString()):prior?.firstVerifiedAt||null,lastSeen:now.toISOString(),deadline,score:verified?score(title,body,Boolean(preferred),c,url):null,jd:body?body.slice(0,12000):prior?.jd||'',feedback:prior?.feedback||null,resumeDraft:prior?.resumeDraft||''};
+    const status=unavailable?'失效':verified?(prior?.status==='待复核'?prior.previousStatus||'新发现':['待用户确认','失效'].includes(prior?.status)?'新发现':prior?.status||'新发现'):(prior?.verified||prior?.status==='待复核'?'待复核':prior?.status||'待用户确认');
+    const entry={...prior,id:prior?.id||crypto.randomUUID(),url,title,company,source:item.source,official:item.official||prior?.official||approved.has(url),isDetail:detail(url),verified,reason,status,previousStatus:status==='待复核'?prior?.previousStatus||prior?.status:null,firstSeen:prior?.firstSeen||now.toISOString(),firstVerifiedAt:verified?(prior?.status==='失效'?now.toISOString():prior?.firstVerifiedAt||now.toISOString()):prior?.firstVerifiedAt||null,lastSeen:now.toISOString(),deadline,reportedAt:prior?.status==='失效'&&verified?null:prior?.reportedAt||null,score:verified?score(title,body,Boolean(preferred),c,url):null,jd:body?body.slice(0,12000):prior?.jd||'',feedback:prior?.feedback||null,resumeDraft:prior?.resumeDraft||''};
     if(!prior&&verified){const duplicate=Object.values(jobs).find(j=>j.verified&&sameRole(j,entry));if(duplicate){if(duplicate.deadline&&entry.deadline&&duplicate.deadline!==entry.deadline){entry.verified=false;entry.score=null;entry.status='待用户确认';entry.reason='同岗来源的截止日不一致';}else{duplicate.urls=[...new Set([...(duplicate.urls||[duplicate.url]),url])];duplicate.source=[...new Set([...(duplicate.source||'').split('；'),item.source].filter(Boolean))].join('；');duplicate.lastSeen=now.toISOString();continue;}}}
     if(!prior){if(entry.verified)newVerified++;else newLeads++;}else if(!prior.verified&&entry.verified)newVerified++;jobs[url]=entry;
   }
@@ -157,9 +158,10 @@ async function scan({daily=false}={}){
   if(daily||urgent.length){if(c.reportMode==='badge'&&chrome.action){await chrome.action.setBadgeText({text:String(daily?dailyIssue.urls.length:urgent.length)});}else await chrome.tabs.create({url:chrome.runtime.getURL(`report.html${urgent.length&&!daily?'?urgent=1':''}`)});}
   return run;
 }
-let running=null;
-function run(opts){if(!running)running=scan(opts).finally(()=>running=null);return running;}
-function reportTiming(c,n){const mode=c.dailySchedule||(c.dailyTime&&c.dailyTime!=='09:00'?'custom':'weekdays-09'),everyDay=mode==='daily-09'||mode==='custom'&&c.dailyDays==='daily';return {enabled:everyDay||n.getDay()!==0&&n.getDay()!==6,time:mode==='custom'?c.dailyTime||'09:00':'09:00'};}
+let running=null,runningDaily=false,queuedDaily=null;
+function startScan(daily){runningDaily=daily;running=scan({daily}).finally(()=>{running=null;runningDaily=false;});return running;}
+function run(opts={}){if(!running)return startScan(Boolean(opts.daily));if(!opts.daily||runningDaily)return running;if(!queuedDaily)queuedDaily=running.catch(()=>{}).then(()=>startScan(true)).finally(()=>{queuedDaily=null;});return queuedDaily;}
+function reportTiming(c,n){const mode=c.dailyDays||(c.dailySchedule==='daily-09'?'daily':'weekdays'),day=n.getDay(),enabled=mode==='daily'?true:mode==='custom'?String(c.customDays||'').split(',').includes(String(day)):day!==0&&day!==6;return {enabled,time:c.dailyTime||'09:00'};}
 async function tick(){const {config,scheduleState={}}=await chrome.storage.local.get(['config','scheduleState']);if(!config)return;const n=new Date(),day=n.toLocaleDateString('en-CA'),hm=n.toTimeString().slice(0,5),workday=n.getDay()!==0&&n.getDay()!==6;const slot=workday?words(config.scanTimes).sort().filter(t=>t<=hm).at(-1):null;const scanDue=Boolean(slot&&(scheduleState.day!==day||scheduleState.slot!==slot)),timing=reportTiming(config,n),reportDue=timing.enabled&&timing.time<=hm&&scheduleState.reportDay!==day;if(!scanDue&&!reportDue)return;try{await run({daily:reportDue});await chrome.storage.local.set({scheduleState:{day,slot:scanDue?slot:scheduleState.day===day?scheduleState.slot||null:null,reportDay:reportDue?day:scheduleState.reportDay}});}catch(e){await chrome.storage.local.set({lastRun:{at:n.toISOString(),verified:0,leads:0,errors:[e.message]}});}}
 chrome.runtime.onInstalled.addListener(()=>{chrome.alarms.create(TICK,{periodInMinutes:5});chrome.runtime.openOptionsPage();});
 chrome.runtime.onStartup.addListener(()=>{chrome.alarms.create(TICK,{periodInMinutes:5});tick();});

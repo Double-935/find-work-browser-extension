@@ -14,38 +14,41 @@
     <div class="grid">
       <label>偏好行业（可选，逗号分隔）<input id="industries" placeholder="教育科技,医疗,游戏"></label>
       <label>目标岗位关键词（逗号分隔；用于跨公司搜索）<input id="keywords" placeholder="产品经理,数据分析,运营"></label>
-      <label>排除关键词（逗号分隔）<input id="exclude" placeholder="销售,客服"></label>
-      <label>实习优先城市（逗号分隔）<input id="cities" placeholder="深圳"></label>
-      <label>公司发展阶段偏好<select id="stagePreference"><option value="">无偏好</option><option value="mature">成熟</option><option value="growth">成长</option><option value="early">早期</option></select></label>
-      <label>公司规模偏好<select id="sizePreference"><option value="">无偏好</option><option value="large">大型</option><option value="medium">中型</option><option value="small">小型</option></select></label>
+      <label>排除关键词（逗号分隔；可选，后续可补充）<input id="exclude" placeholder="销售,客服"></label>
+      <label>实习优先城市（逗号分隔；可选，如留空，则全部检索）<input id="cities" placeholder="深圳"></label>
+      <label>公司发展阶段偏好（可选，如留空，则全部检索）<select id="stagePreference"><option value="">无偏好</option><option value="mature">成熟</option><option value="growth">成长</option><option value="early">早期</option></select></label>
+      <label>公司规模偏好（可选，如留空，则全部检索）<select id="sizePreference"><option value="">无偏好</option><option value="large">大型</option><option value="medium">中型</option><option value="small">小型</option></select></label>
       <label id="smallMaxField" hidden>小型公司人数上限<input id="smallMax" type="number" min="1" value="99"></label>
       <label id="mediumMaxField" hidden>中型公司人数上限<input id="mediumMax" type="number" min="2" value="999"></label>
     </div>
+    <label>优先关注公司（可选；每行一个公司名；官方域名可选填在“|”后）<textarea id="companies" rows="7" placeholder="示例公司\n另一家公司 | careers.example.com"></textarea></label>
+  </section>
+  <section class="settings-section" aria-labelledby="salaryHeading">
+    <h2 id="salaryHeading">三、薪资待遇</h2>
+    <div id="salaryDetails" class="grid">
+      <label>薪资币种<select id="salaryCurrency"><option value="CNY">人民币</option><option value="HKD">港币</option><option value="USD">美元</option></select></label>
+      <label>薪资对应岗位<select id="salaryWorkType"><option value="intern">实习</option><option value="fulltime">正职</option></select></label>
+      <label>计薪周期<select id="salaryPeriod"><option value="day">每天</option><option value="month">每月</option><option value="year">每年</option></select></label>
+    </div>
     <fieldset class="salary-range">
-      <legend>期望薪资区间</legend>
+      <legend>期望薪资区间（可选）</legend>
       <p class="section-note">填写完整金额，例如期望每月 2 万元，请填 20000。</p>
       <div class="grid">
         <label>上限<input id="salaryMax" type="number" min="0" step="any" placeholder="可留空"></label>
         <label>下限<input id="salaryMin" type="number" min="0" step="any" placeholder="可留空"></label>
       </div>
-      <div id="salaryDetails" class="grid" hidden>
-        <label>薪资币种<select id="salaryCurrency"><option value="CNY">人民币</option><option value="HKD">港币</option><option value="USD">美元</option></select></label>
-        <label>薪资对应岗位<select id="salaryWorkType"><option value="intern">实习</option><option value="fulltime">正职</option></select></label>
-        <label>计薪周期<select id="salaryPeriod"><option value="day">每天</option><option value="month">每月</option><option value="year">每年</option></select></label>
-      </div>
     </fieldset>
-    <label>优先关注公司（每行一个公司名；官方域名可选填在“|”后）<textarea id="companies" rows="7" placeholder="示例公司\n另一家公司 | careers.example.com"></textarea></label>
-    <div class="settings-section" aria-labelledby="priorityHeading">
-      <h3 id="priorityHeading">权重排序</h3>
-      <div id="criteria"></div>
-      <button id="addCriterion" type="button" class="secondary add-criterion">＋ 添加一条排序规则</button>
-      <div class="grid">
-        <label>高匹配门槛（0–100）<input id="highMatchThreshold" type="number" min="0" max="100" value="80"></label>
-      </div>
+  </section>
+  <section class="settings-section" aria-labelledby="priorityHeading">
+    <h2 id="priorityHeading">四、权重排序</h2>
+    <div id="criteria"></div>
+    <button id="addCriterion" type="button" class="secondary add-criterion">＋ 添加一条排序规则</button>
+    <div class="grid">
+      <label>高匹配门槛（0–100；可选，如留空，则按 80 分计算）<input id="highMatchThreshold" type="number" min="0" max="100" value="80"></label>
     </div>
   </section>
   <section class="settings-section" aria-labelledby="resumeHeading">
-    <div class="section-heading"><h2 id="resumeHeading">三、提供简历母板</h2><p>选一种方式即可。没有母板时照常找岗位，只是不生成定制简历提示词。</p></div>
+    <div class="section-heading"><h2 id="resumeHeading">五、提供简历母板（可选）</h2><p>选一种方式即可。没有母板时照常找岗位，只是不生成定制简历提示词。</p></div>
     <div class="resume-methods">
       <div class="resume-method"><h3>方式 A · 上传文件</h3><p>支持 PDF、Word、TXT、Markdown、RTF、ODT，最大 15 MB。</p><input id="resumeFile" class="visually-hidden" type="file" accept=".pdf,.doc,.docx,.txt,.md,.rtf,.odt"><label for="resumeFile" class="file-picker">选择简历文件</label><div class="file-status"><span id="currentResumeFile" role="status">尚未选择文件</span><button id="clearResumeFile" type="button" class="text-button" hidden>移除文件</button></div></div>
       <div class="resume-method"><h3>方式 B · 粘贴文本</h3><p>直接粘贴简历内容。两种方式都提供时，提示词会同时引用它们。</p><label class="textarea-label" for="resume">简历母板文本</label><textarea id="resume" rows="8" placeholder="在这里粘贴事实准确的简历内容"></textarea></div>
@@ -53,9 +56,10 @@
     <p class="section-note">上传的文件只保存在本机浏览器。使用外部 AI 时，由你决定是否附上原文件。</p>
   </section>
   <section class="settings-section" aria-labelledby="reportHeading">
-    <h2 id="reportHeading">四、日报设置</h2>
-    <div class="grid"><label>日报时间（本机时间）<select id="dailySchedule"><option value="weekdays-09">仅工作日早九点</option><option value="daily-09">每日早九点</option><option value="custom">自定义</option></select></label><label>扫描时间（逗号分隔，24小时制）<input id="scanTimes" placeholder="09:00,15:00,21:00"></label></div>
-    <div id="customDailyFields" class="grid" hidden><label>发送日期<select id="dailyDays"><option value="weekdays">仅工作日</option><option value="daily">每日</option></select></label><label>发送时间（本机时间）<input id="dailyTime" type="time"></label></div>
+    <h2 id="reportHeading">六、日报设置</h2>
+    <label>发送日期<select id="dailyDays"><option value="weekdays">仅工作日（周一至周五）</option><option value="daily">每日</option><option value="custom">自定义</option></select></label>
+    <fieldset id="customWeekdays" class="weekday-picker" hidden><legend>选择发送星期（可多选）</legend><div class="weekday-options"><label><input type="checkbox" name="reportWeekday" value="1" checked>周一</label><label><input type="checkbox" name="reportWeekday" value="2" checked>周二</label><label><input type="checkbox" name="reportWeekday" value="3" checked>周三</label><label><input type="checkbox" name="reportWeekday" value="4" checked>周四</label><label><input type="checkbox" name="reportWeekday" value="5" checked>周五</label><label><input type="checkbox" name="reportWeekday" value="6">周六</label><label><input type="checkbox" name="reportWeekday" value="0">周日</label></div></fieldset>
+    <div class="grid"><label>日报时间（本机时间）<input id="dailyTime" type="time"></label><label>扫描时间（逗号分隔，24小时制）<input id="scanTimes" placeholder="09:00,15:00,21:00"></label></div>
     <label>早报呈现<select id="reportMode"><option value="tab">自动打开标签页</option><option value="badge">只在插件图标显示提醒</option></select></label>
   </section>
   <button id="save">保存设置</button><p id="message" role="status"></p><p><a href="report.html">查看日报与进度</a></p>
